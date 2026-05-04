@@ -18,6 +18,10 @@ struct MainView: View {
 //    @State private var route: MKRoute?
     @State private var straightLineCoordinates: [CLLocationCoordinate2D] = []
     
+    @State private var showSavedMarks: Bool = false
+
+    @State private var pinCounter: Int = 0
+    
     var body: some View {
         ZStack {
             Map(position: $mapPosition) {
@@ -42,10 +46,6 @@ struct MainView: View {
                 
                 UserAnnotation()
                 
-//                if let route {
-//                    MapPolyline(route)
-//                        .stroke(Color.blue, lineWidth: 4)
-//                }
                 if !straightLineCoordinates.isEmpty {
                     MapPolyline(coordinates: straightLineCoordinates)
                         .stroke(.blue, lineWidth: 4)
@@ -64,21 +64,90 @@ struct MainView: View {
                     mapPosition = .region(MKCoordinateRegion(center: coordinate, latitudinalMeters: 1300, longitudinalMeters: 1300))
                 }
             }
-            Button(action: createAnnotation) {
-                    Label("Pin Location", systemImage: "plus")
-                }
-            .buttonStyle(.borderedProminent)
-            .position(x: 100, y: 700)
+//            Button(action: createAnnotation) {
+//                    Label("Pin Location", systemImage: "plus")
+//                }
+//            .buttonStyle(.borderedProminent)
+//            .position(x: 100, y: 700)
             
+            VStack{
+                Spacer()
+                HStack(spacing: 16) {
+                    // Saved Marks list button (flag icon with badge)
+                    ZStack(alignment: .topTrailing) {
+                        Button(action: { showSavedMarks.toggle() }) {
+                            Image(systemName: "flag")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(width: 48, height: 48)
+                                .background(Color.blue)
+                                .clipShape(Circle())
+                        }
+                        if !locations.isEmpty {
+                            Text("\(locations.count)")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(4)
+                                .background(Color.orange)
+                                .clipShape(Circle())
+                                .offset(x: 4, y: -4)
+                        }
+                    }
+
+                    // Add Mark button
+                    Button(action: createAnnotation) {
+                        Text("ADD MARK")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.orange)
+                            .cornerRadius(14)
+                    }
+
+                    // Navigate to last pin button
+                    Button(action: {
+                        if let last = locations.last {
+                            getDirections(to: last)
+                        }
+                    }) {
+                        Image(systemName: "location.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(width: 48, height: 48)
+                            .background(Color.blue)
+                            .clipShape(Circle())
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 36)
+            }
+            
+        }
+        .sheet(isPresented: $showSavedMarks) {
+            SavedMarksView(
+                locations: $locations,
+                onNavigate: { location in
+                    showSavedMarks = false
+                    getDirections(to: location)
+                },
+                onDelete: { location in
+                    locations.removeAll { $0.id == location.id }
+                }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(Color(red: 0.98, green: 0.98, blue: 0.98))
         }
     }
     
     func createAnnotation(){
         if let coordinate = locationManager.location?.coordinate {
-            print(coordinate)
-            let newLocation = Location(name: "PIN" + String(locations.count), coordinate: coordinate)
-            print(newLocation.name)
+            print(coordinate) // tes ambil koor
+            let newLocation = Location(name: "PIN" + String(locations.count + 1), coordinate: coordinate)
+            print(newLocation.name) // tes print nama tiitk
             locations.append(newLocation)
+            pinCounter += 1
         }
     
     }
