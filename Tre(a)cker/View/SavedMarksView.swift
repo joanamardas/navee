@@ -4,137 +4,182 @@
 //
 
 import SwiftUI
+import CoreLocation
 internal import _LocationEssentials
 
-struct SavedMarksView: View {
+struct SavedMarksView: View  {
     @Binding var locations: [Location]
+    @Binding var isPresented: Bool
+    @State private var selectedLocation: Location?
     var onNavigate: (Location) -> Void
-    var onDelete: (Location) -> Void
-
+    @State private var locationManager = CLLocationManager()
+    
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Saved Marks")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundColor(.black)
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 12)
-
-            if locations.isEmpty {
-                VStack {
-                    Spacer()
-                    Text("No marks saved yet.")
-                        .foregroundColor(.gray)
-                        .font(.system(size: 15))
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity)
-            } else {
-                ScrollView {
-                    VStack(spacing: 13) {
-                        ForEach(locations) { location in
-                            SavedMarkCard(
-                                location: location,
-                                onNavigate: { onNavigate(location) },
-                                onDelete: { onDelete(location) }
-                            )
-                        }
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.bottom, 20)
-                }
-            }
-        }
-        .background(Color(red: 0.98, green: 0.98, blue: 0.98))
-    }
-}
-
-// MARK: - Individual Card
-
-struct SavedMarkCard: View {
-    let location: Location
-    var onNavigate: () -> Void
-    var onDelete: () -> Void
-
-    @State private var isExpanded: Bool = false
-
-    private var timeString: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        return formatter.string(from: location.timestamp)
-    }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                Image(systemName: "flag.fill")
-                    .foregroundColor(.blue)
-                    .font(.system(size: 20))
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(location.name)
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(.black)
-                    Text(timeString)
-                        .font(.system(size: 12))
-                        .foregroundColor(.gray)
-                }
-
-                Spacer()
-
-                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .foregroundColor(.gray)
-                    .font(.system(size: 13))
-            }
-            .frame(maxWidth: .infinity, minHeight: 71, maxHeight: 71)
-            .padding(.horizontal, 16)
-            .background(Color.white)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isExpanded.toggle()
-                }
-            }
-
-            if isExpanded {
-                HStack(spacing: 10) {
-                    Button(action: onNavigate) {
-                        Text("Navigate")
-                            .font(.system(size: 14, weight: .semibold))
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 0) {
+                
+                // ── Header ──────────────────────────────────────────────────
+                HStack(alignment: .center) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Saved Point")
+                            .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(Color.orange)
-                            .cornerRadius(10)
+                        Text("\(locations.count) Point")
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray)
                     }
-
-                    Button(action: onDelete) {
-                        Image(systemName: "trash")
-                            .foregroundColor(.red)
-                            .font(.system(size: 16))
-                            .padding(10)
-                            .background(Color(red: 0.95, green: 0.95, blue: 0.95))
-                            .cornerRadius(10)
+                    
+                    Spacer()
+                    
+                    Button(action: { isPresented = false }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 36, height: 36)
+                            .background(Color.white.opacity(0.15))
+                            .clipShape(Circle())
                     }
                 }
                 .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(Color.white)
+                .padding(.top, 16)
+                
+                // ── List ────────────────────────────────────────────────────
+                if locations.isEmpty {
+                    VStack {
+                        Spacer()
+                        Image(systemName: "mappin.circle.fill")
+                            .font(.system(size: 40))
+                            .foregroundColor(.gray.opacity(0.5))
+                        Text("No points saved yet.")
+                            .foregroundColor(.gray)
+                            .font(.system(size: 15))
+                            .padding(.top, 8)
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.black)
+                } else {
+                    List {
+                        ForEach($locations) { $location in
+                            MarkRow(
+                                location: $location,
+                                onNavigate: { onNavigate(location) },
+                                onEdit: {
+                                    selectedLocation = location
+                                }
+                            )
+                            .listRowBackground(Color.black)
+                            .listRowInsets(EdgeInsets())
+                            .listRowSeparatorTint(Color.white.opacity(0.1))
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    locations.removeAll { $0.id == location.id }
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                            
+                        }
+                    }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                    .background(Color.black)
+                    .frame(maxWidth: .infinity,  maxHeight: .infinity)
+                }
+                
             }
+            .background(Color.black)
+            .sheet(item: $selectedLocation) { location in
+                NavigationStack {
+                    ModifyPin(location: safeBinding(for: location),
+                              userLocation: locationManager.location, // Kirim lokasi user sekarang
+                              onDelete: {
+                        // Logika hapus: cari ID yang sama lalu buang dari array
+                        locations.removeAll { $0.id == location.id }
+                    })
+                }
+            }
+            
+            
         }
-        .cornerRadius(14)
-        .shadow(color: .black.opacity(0.06), radius: 3, x: 0, y: 1)
+    }
+    func safeBinding(for targetLocation: Location) -> Binding<Location> {
+        Binding(
+            get: {
+                // Cari lokasi saat ini, jika tidak ketemu pakai data terakhir
+                locations.first(where: { $0.id == targetLocation.id }) ?? targetLocation
+            },
+            set: { newValue in
+                // Simpan perubahan kembali ke array
+                if let index = locations.firstIndex(where: { $0.id == targetLocation.id }) {
+                    locations[index] = newValue
+                }
+            }
+        )
     }
 }
+
+
+// MARK: - Individual Row
+
+struct MarkRow: View {
+    @Binding var location: Location
+    var onNavigate: () -> Void
+    var onEdit: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "mappin.circle.fill")
+                .font(.system(size: 36))
+                .foregroundColor(.blue)
+                .frame(width: 48, height: 48)
+            
+            VStack(alignment: .leading, spacing: 3) {
+                Text(location.name)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                Text("\(Int(location.altitude)) meter")
+                    .font(.system(size: 13))
+                    .foregroundColor(.gray)
+            }
+            
+            Spacer()
+            
+            HStack(spacing: 8){
+                Button(action: onNavigate) {
+                    Image(systemName: "location.circle.fill")
+                        .font(.system(size: 28))
+                        .foregroundColor(Color(red: 0.2, green: 0.5, blue: 1.0))
+                }
+                .buttonStyle(.plain)
+                Button("Edit") {
+                    onEdit()
+                }
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(Color(red: 0.2, green: 0.5, blue: 1.0))
+                .buttonStyle(.plain)
+                
+            }
+            
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .preferredColorScheme(.dark)
+    }
+}
+
+// MARK: - Preview
 
 #Preview {
     SavedMarksView(
         locations: .constant([
-            Location(name: "Titik 1", coordinate: .init(latitude: -6.292363, longitude: 106.644227), altitude: 100, emoji: "📍"),
-            Location(name: "Titik 2", coordinate: .init(latitude: -6.293000, longitude: 106.645000), altitude: 200, emoji: "📍"),
-            Location(name: "Titik 3", coordinate: .init(latitude: -6.291000, longitude: 106.643000), altitude: 300, emoji: "📍")
+            Location(name: "Titik 1", coordinate: .init(latitude: -6.292363, longitude: 106.644227), altitude: 12, emoji: "", notes: ""),
+            Location(name: "Titik 2", coordinate: .init(latitude: -6.293000, longitude: 106.645000), altitude: 6,  emoji: "", notes: ""),
+            Location(name: "Titik 3", coordinate: .init(latitude: -6.291000, longitude: 106.643000), altitude: 34, emoji: "", notes: "")
         ]),
-        onNavigate: { _ in },
-        onDelete: { _ in }
+        isPresented: .constant(true),
+        onNavigate: { _ in }
     )
+    .preferredColorScheme(.dark)
 }

@@ -15,7 +15,6 @@ struct MainView: View {
     
     @State private var locations: [Location] = []
     
-    //    @State private var route: MKRoute?
     @State private var straightLineCoordinates: [CLLocationCoordinate2D] = []
     
     @State private var showSavedMarks: Bool = false
@@ -87,7 +86,7 @@ struct MainView: View {
                             }
                         }
                         
-                        break // hanya set sekali saat awal
+                        break
                     }
                 }
             }
@@ -168,25 +167,26 @@ struct MainView: View {
             
         }
         .sheet(isPresented: $showSavedMarks) {
-            Anna_View(
-                locations: $locations,
-                isPresented: $showSavedMarks,
-                onNavigate: { location in
-                    showSavedMarks = false
-                    getDirections(to: location)
-                }
-            )
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
-            .presentationBackground(Color.black)
-        }
+                SavedMarksView(
+                    locations: $locations,
+                    isPresented: $showSavedMarks,
+                    onNavigate: { location in
+                        showSavedMarks = false
+                        getDirections(to: location)
+                    }
+                )
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(.black)
+            }
+        
     }
     
     
     func createAnnotation(){
         if let coordinate = locationManager.location?.coordinate{
             print(coordinate) // tes ambil koor
-            let newLocation = Location(name: "PIN" + String(locations.count + 1), coordinate: coordinate, altitude: locationManager.location?.altitude ?? 0, emoji: "📍")
+            let newLocation = Location(name: "PIN" + String(locations.count + 1), coordinate: coordinate, altitude: locationManager.location?.altitude ?? 0, emoji: "📍", notes: "")
             print(newLocation.altitude)
             print(newLocation.name) // tes print nama tiitk
             locations.append(newLocation)
@@ -249,8 +249,6 @@ struct MainView: View {
     
     
 }
-
-
 
 
 
