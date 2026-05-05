@@ -168,19 +168,17 @@ struct MainView: View {
             
         }
         .sheet(isPresented: $showSavedMarks) {
-            SavedMarksView(
+            Anna_View(
                 locations: $locations,
+                isPresented: $showSavedMarks,
                 onNavigate: { location in
                     showSavedMarks = false
                     getDirections(to: location)
-                },
-                onDelete: { location in
-                    locations.removeAll { $0.id == location.id }
                 }
             )
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
-            .presentationBackground(Color(red: 0.98, green: 0.98, blue: 0.98))
+            .presentationBackground(Color.black)
         }
     }
     
@@ -259,3 +257,5 @@ struct MainView: View {
 #Preview {
     MainView()
 }
+
+
