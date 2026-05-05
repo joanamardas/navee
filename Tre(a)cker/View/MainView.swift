@@ -22,69 +22,61 @@ struct MainView: View {
     )
 
     // ── Data ──
-    @StateObject private var tracker = LocationTracker()
+    @StateObject private var tracker = LocationTracker()   // ← satu-satunya location source
     @State private var locations: [Location] = []
 
     // ── Route line ──
     @State private var straightLineCoordinates: [CLLocationCoordinate2D] = []
-    
+
     @State private var showSavedMarks: Bool = false
-    
     @State private var pinCounter: Int = 0
-    
     @State private var isTracking = false
-    
+
     var body: some View {
         ZStack {
             Map(position: $mapPosition) {
                 if !locations.isEmpty {
                     ForEach(locations) { location in
-                        Annotation(location.name, coordinate: location.coordinate, anchor: .center){
+                        Annotation(location.name, coordinate: location.coordinate, anchor: .center) {
                             Text(location.emoji)
                                 .font(.system(size: 20))
                                 .padding(8)
                                 .background(.black)
                                 .clipShape(Circle())
-                                .overlay(
-                                    Circle()
-                                        .stroke(.blue, lineWidth: 1)
-                                )
+                                .overlay(Circle().stroke(.blue, lineWidth: 1))
                                 .shadow(radius: 3)
-                                .contextMenu{
-                                    Text(location.name) // ini jadi header
-
+                                .contextMenu {
+                                    Text(location.name)
                                     Button("Get Direction") {
                                         getDirections(to: location)
                                     }
                                 }
-                                
                         }
                     }
                 }
-                
+
                 UserAnnotation()
-                
+
                 if !straightLineCoordinates.isEmpty {
                     MapPolyline(coordinates: straightLineCoordinates)
                         .stroke(.blue, lineWidth: 4)
                 }
-                
             }
             .mapStyle(.standard(elevation: .realistic))
             .preferredColorScheme(.dark)
-            .mapControls{
+            .mapControls {
                 MapUserLocationButton()
                 MapCompass()
                 MapPitchToggle()
                 MapScaleView()
             }
             .onAppear {
-                locationManager.requestWhenInUseAuthorization()
-                
+                tracker.startTracking()                    // ← fix: pakai tracker
+
                 Task {
                     for try await update in CLLocationUpdate.liveUpdates() {
                         guard let coordinate = update.location?.coordinate else { continue }
-                        
+
                         await MainActor.run {
                             withAnimation(.easeInOut) {
                                 mapPosition = .region(
@@ -96,31 +88,27 @@ struct MainView: View {
                                 )
                             }
                         }
-                        
+
                         break
                     }
                 }
             }
             .blur(radius: isTracking ? 0 : 10)
             .allowsHitTesting(isTracking)
-            
+
+            // ── Overlay tombol saat tracking ──
             if isTracking {
                 VStack {
                     Spacer()
                     HStack(spacing: 16) {
-                        // Saved Marks list button (flag icon with badge)
                         ZStack(alignment: .topTrailing) {
                             Button(action: { showSavedMarks.toggle() }) {
                                 Image(systemName: "flag")
                                     .font(.system(size: 18, weight: .semibold))
                                     .foregroundColor(.white)
                                     .frame(width: 48, height: 48)
-//                                    .background(Color.blue)
                                     .clipShape(Circle())
-                                    .overlay(
-                                        Circle()
-                                            .stroke(.white, lineWidth: 1.5)
-                                    )
+                                    .overlay(Circle().stroke(.white, lineWidth: 1.5))
                             }
                             if !locations.isEmpty {
                                 Text("\(locations.count)")
@@ -132,8 +120,7 @@ struct MainView: View {
                                     .offset(x: 4, y: -4)
                             }
                         }
-                        
-                        // Add Mark button
+
                         Button(action: createAnnotation) {
                             Text("ADD MARK")
                                 .font(.system(size: 15, weight: .bold))
@@ -148,19 +135,17 @@ struct MainView: View {
                     .padding(.bottom, 36)
                 }
             }
-            
-            //overlay start trekking
+
+            // ── Overlay start trekking ──
             if !isTracking {
                 ZStack {
-                    Color.black.opacity(0.1) // dark overlay
-                    
+                    Color.black.opacity(0.1)
+
                     VStack(spacing: 20) {
                         Text("Are you ready to start?")
                             .font(.title2.bold())
                             .foregroundColor(.white)
-                        Button(action: {
-                            isTracking = true
-                        }) {
+                        Button(action: { isTracking = true }) {
                             Label("Start Trekking", systemImage: "location.fill")
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(.black)
@@ -169,56 +154,60 @@ struct MainView: View {
                                 .background(Color.white)
                                 .cornerRadius(50)
                         }
-                        
                     }
-                    
                 }
                 .ignoresSafeArea()
             }
-            
         }
         .sheet(isPresented: $showSavedMarks) {
-                SavedMarksView(
-                    locations: $locations,
-                    isPresented: $showSavedMarks,
-                    onNavigate: { location in
-                        showSavedMarks = false
-                        getDirections(to: location)
-                    }
-                )
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
-                .presentationBackground(.black)
-            }
-        
-    }
-    
-    
-    func createAnnotation(){
-        if let coordinate = locationManager.location?.coordinate{
-            print(coordinate) // tes ambil koor
-            let newLocation = Location(name: "PIN" + String(locations.count + 1), coordinate: coordinate, altitude: locationManager.location?.altitude ?? 0, emoji: "📍", notes: "")
-            print(newLocation.altitude)
-            print(newLocation.name) // tes print nama tiitk
-            locations.append(newLocation)
-            pinCounter += 1
+            SavedMarksView(
+                locations: $locations,
+                isPresented: $showSavedMarks,
+                onNavigate: { location in
+                    showSavedMarks = false
+                    getDirections(to: location)
+                },
+                userLocation: tracker.userLocation         // ← fix: pass userLocation
+            )
+            .presentationDetents([.large])                 // ← fix: langsung full
+            .presentationDragIndicator(.visible)
+            .presentationBackground(.black)
         }
-        
     }
-    
+
+    // ─────────────────────────────────────────────
+    // MARK: - Actions
+    // ─────────────────────────────────────────────
+
+    func createAnnotation() {
+        guard let location = tracker.currentLocation() else {  // ← fix: pakai tracker
+            print("[AddMark] Lokasi belum tersedia")
+            return
+        }
+        let newLocation = Location(
+            name:       "PIN\(locations.count + 1)",
+            coordinate: location.coordinate,
+            altitude:   location.altitude,
+            emoji:      MapConfig.pinEmoji,
+            notes:      ""
+        )
+        print(newLocation.altitude)
+        print(newLocation.name)
+        locations.append(newLocation)
+        pinCounter += 1
+    }
+
     func getUserLocation() async -> CLLocationCoordinate2D? {
         let updates = CLLocationUpdate.liveUpdates()
-        
         do {
             let update = try await updates.first { $0.location?.coordinate != nil }
-            
             return update?.location?.coordinate
         } catch {
             print("Cannot get user location")
             return nil
         }
     }
-    
+
     func getDirections(to destination: Location) {
         Task {
             for try await update in CLLocationUpdate.liveUpdates() {
@@ -238,11 +227,9 @@ struct MainView: View {
                         .sorted { $0.timestamp > $1.timestamp }
 
                     var routeCoordinates: [CLLocationCoordinate2D] = [userCoordinate]
-
                     for pin in waypoints {
                         routeCoordinates.append(pin.coordinate)
                     }
-
                     routeCoordinates.append(destination.coordinate)
 
                     straightLineCoordinates = routeCoordinates
@@ -250,18 +237,13 @@ struct MainView: View {
             }
         }
     }
-    
+
     func isNear(_ a: CLLocationCoordinate2D, _ b: CLLocationCoordinate2D) -> Bool {
-        let loc1 = CLLocation(latitude: a.latitude, longitude: a.longitude)
-        let loc2 = CLLocation(latitude: b.latitude, longitude: b.longitude)
-        
-        return loc1.distance(from: loc2) < 15 // mau hilang garisnya jika sudah mendekati berapa meteer
+        CLLocation(latitude: a.latitude, longitude: a.longitude)
+            .distance(from: CLLocation(latitude: b.latitude, longitude: b.longitude))
+            < MapConfig.nearbyThreshold
     }
-    
-    
 }
-
-
 
 #Preview {
     MainView()

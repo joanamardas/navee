@@ -1,175 +1,159 @@
 import SwiftUI
-internal import _LocationEssentials
+import CoreLocation
 
 struct ModifyPin: View {
     @Environment(\.dismiss) var dismiss
-    
+
     @Binding var location: Location
-    var userLocation: CLLocation? // untuk hitung jarak asli
+    var userLocation: CLLocation?
     var onDelete: () -> Void
-    
-    @FocusState private var isEmojiFieldFocused: Bool
-    
+
+    private let iconOptions: [String] = [
+        "mappin",
+        "tent.fill",
+        "sun.max.fill",
+        "water.waves",
+        "flag.fill",
+        "mountain.2.fill",
+        "flame.fill",
+        "binoculars.fill"
+    ]
+
     private var calculatedDistance: Double? {
-            guard let userLoc = userLocation else { return nil }
-            let pinLoc = CLLocation(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
-            return userLoc.distance(from: pinLoc)
-        }
-    
+        guard let userLoc = userLocation else { return nil }
+        let pinLoc = CLLocation(
+            latitude: location.coordinate.latitude,
+            longitude: location.coordinate.longitude
+        )
+        return userLoc.distance(from: pinLoc)
+    }
+
     var body: some View {
-        
         Form {
-            
-            // MARK: - Editable: Name
+
+            // MARK: - Name
             Section {
-                HStack(spacing: 12) {
-                    TextField("Location name", text: $location.name)
-                    
-                    Button {
-                        isEmojiFieldFocused = true
-                    } label: {
-                        ZStack {
-                            Circle()
-                                .fill(Color(.systemGray5))
-                                .frame(width: 44, height: 44)
-                            
-                            Text(location.emoji)
-                                .font(.title3)
+                TextField("Point name", text: $location.name)
+            }
+
+            // MARK: - Icon picker
+            Section {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 20) {
+                        ForEach(iconOptions, id: \.self) { icon in
+                            Button {
+                                location.emoji = icon
+                            } label: {
+                                Image(systemName: icon)
+                                    .font(.system(size: 20))
+                                    .foregroundColor(location.emoji == icon ? .blue : .secondary)
+                                    .frame(width: 36, height: 36)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
-                    .buttonStyle(.plain)
-                }
-                .padding(.vertical, 6)
-                .overlay {
-                    TextField("", text: $location.emoji)
-                        .focused($isEmojiFieldFocused)
-                        .opacity(0)
-                        .allowsHitTesting(false)
+                    .padding(.vertical, 4)
                 }
             }
-            
-            // MARK: - Editable: Notes
+
+            // MARK: - Notes
             Section {
                 TextField("Add a note", text: $location.notes, axis: .vertical)
                     .lineLimit(3...6)
             }
-            
-            // MARK: - Read Only: Details
-            VStack(spacing: 16) {
-                
-                //header: Text("Details"))
-                // Distance
+
+            // MARK: - Details (read-only)
+            Section {
+                if let dist = calculatedDistance {
+                    detailRow(
+                        label: "Distance",
+                        value: dist < 1000
+                            ? "\(Int(dist)) m away"
+                            : String(format: "%.1f km away", dist / 1000)
+                    )
+                }
                 detailRow(
-                    label: "Distance",
-                    value: "\(Int(calculatedDistance ?? 0)) m away"
+                    label: "Altitude",
+                    value: "\(Int(location.altitude)) mdpl"
                 )
-                
-                Divider()
-                
-                // Coordinates
                 detailRow(
                     label: "Coordinates",
-                    value: "\(location.coordinate.latitude, default: "%.4f"), \(location.coordinate.longitude, default: "%.4f")"
+                    value: String(
+                        format: "%.4f, %.4f",
+                        location.coordinate.latitude,
+                        location.coordinate.longitude
+                    )
                 )
-                
-                Divider()
-                
-                // DateTime
                 detailRow(
                     label: "Saved",
-                    value: formattedDateTime(Date())
+                    value: formattedDateTime(location.timestamp)
                 )
             }
-            .padding(.vertical, 4)
-            
-            
+
             // MARK: - Delete
             Section {
                 Button(role: .destructive) {
                     onDelete()
                     dismiss()
                 } label: {
-                    Label("Delete Location", systemImage: "trash")
+                    Text("Delete Location")
+                        .frame(maxWidth: .infinity, alignment: .center)
                 }
             }
-            .foregroundStyle(Color(.systemRed))
         }
-        .navigationTitle("Edit Pin")
+        .navigationTitle("Edit Point")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(false)  // biarkan default chevron
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                if #available(iOS 26.0, *) {
-                    Button(role: .close) {
-                        dismiss()
-                    }
-                } else {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-            }
             ToolbarItem(placement: .confirmationAction) {
-                if #available(iOS 26.0, *) {
-                    Button(role: .confirm) {
-                        dismiss()
-                    }
-                } else {
-                    Button("Save") {
-                        dismiss()
-                    } .disabled(location.name.isEmpty)
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(.white)
                 }
-                .disabled(name.isEmpty)
+                .disabled(location.name.isEmpty)
             }
         }
-        //        }
-        .preferredColorScheme(ColorScheme.dark)
+        .preferredColorScheme(.dark)
     }
 
     private func detailRow(label: String, value: String) -> some View {
-        HStack(alignment: .top) {
+        HStack {
             Text(label)
                 .foregroundColor(.secondary)
-            
             Spacer()
-            
             Text(value)
                 .multilineTextAlignment(.trailing)
                 .foregroundColor(.secondary)
         }
     }
-    
+
     private func formattedDateTime(_ date: Date) -> String {
-        let calendar = Calendar.current
-        
-        let timeFormatter = DateFormatter()
-        timeFormatter.timeStyle = .short
-        
-        if calendar.isDateInToday(date) {
-            return "Today, \(timeFormatter.string(from: date))"
-        } else if calendar.isDateInYesterday(date) {
-            return "Yesterday, \(timeFormatter.string(from: date))"
-        } else {
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateStyle = .medium
-            return "\(dateFormatter.string(from: date)), \(timeFormatter.string(from: date))"
-        }
+        let cal = Calendar.current
+        let tf  = DateFormatter(); tf.timeStyle = .short
+        if cal.isDateInToday(date)     { return "Today, \(tf.string(from: date))" }
+        if cal.isDateInYesterday(date) { return "Yesterday, \(tf.string(from: date))" }
+        let df = DateFormatter(); df.dateStyle = .medium
+        return "\(df.string(from: date)), \(tf.string(from: date))"
     }
 }
 
 #Preview {
-    ModifyPin(
-        location: .constant(
-            Location(
-                name: "Titik 1",
-                coordinate: .init(latitude: -6.292363, longitude: 106.644227),
-                altitude: 12,
-                emoji: "📍",
-                notes: ""
-            )
-        ),
-        userLocation: CLLocation(latitude: -6.292000, longitude: 106.644000),
-        onDelete: {}
-    )
+    NavigationStack {
+        ModifyPin(
+            location: .constant(
+                Location(
+                    name: "Point 1",
+                    coordinate: .init(latitude: -6.2, longitude: 106.8166),
+                    altitude: 12,
+                    emoji: "mappin",
+                    notes: ""
+                )
+            ),
+            userLocation: CLLocation(latitude: -6.2012, longitude: 106.8154),
+            onDelete: {}
+        )
+    }
+    .preferredColorScheme(.dark)
 }
-
