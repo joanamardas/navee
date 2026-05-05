@@ -254,7 +254,7 @@
 				DEVELOPMENT_TEAM = 4FJUUUYNG6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Access Location is needed for using this app.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "This app uses your location to show your current position, save places, and provide directions.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -288,7 +288,7 @@
 				DEVELOPMENT_TEAM = 4FJUUUYNG6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Access Location is needed for using this app.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "This app uses your location to show your current position, save places, and provide directions.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
