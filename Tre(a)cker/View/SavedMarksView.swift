@@ -4,7 +4,8 @@
 //
 
 import SwiftUI
-internal import _LocationEssentials
+//internal import _LocationEssentials
+import CoreLocation
 
 struct SavedMarksView: View {
     @Binding var locations: [Location]
