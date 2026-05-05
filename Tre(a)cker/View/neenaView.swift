@@ -1,18 +1,18 @@
+////
+////  neenaView.swift
+////  Tre(a)cker
+////
+////  Created by neena on 04/05/26.
+////
 //
-//  neenaView.swift
-//  Tre(a)cker
+//import SwiftUI
 //
-//  Created by neena on 04/05/26.
+//struct neenaView: View {
+//    var body: some View {
+//        Text("ini file neena, ya!")
+//    }
+//}
 //
-
-import SwiftUI
-
-struct neenaView: View {
-    var body: some View {
-        Text("ini file neena, ya!")
-    }
-}
-
-#Preview {
-    neenaView()
-}
+//#Preview {
+//    neenaView()
+//}
