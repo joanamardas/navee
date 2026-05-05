@@ -1,29 +1,14 @@
-//
-//  MainView.swift
-//  Tre(a)cker
-//
-
 import SwiftUI
 import MapKit
 import CoreLocation
 
-
-// ─────────────────────────────────────────────
-// MARK: - Constants
-// ─────────────────────────────────────────────
-
 private enum MapConfig {
     static let defaultCenter    = CLLocationCoordinate2D(latitude: -6.715290, longitude: 106.733032)
-    static let defaultSpan      = 1_300.0   // meter — lebar area awal peta
-    static let nearbyThreshold  = 15.0      // meter — pin dianggap "sudah dilewati"
+    static let defaultSpan      = 1_300.0
+    static let nearbyThreshold  = 15.0
     static let pinNamePrefix    = "PIN"
     static let pinEmoji         = "📍"
 }
-
-
-// ─────────────────────────────────────────────
-// MARK: - Main View
-// ─────────────────────────────────────────────
 
 struct MainView: View {
 
@@ -38,48 +23,44 @@ struct MainView: View {
 
     // ── Data ──
     @StateObject private var tracker = LocationTracker()
-    @State private var locations:               [Location]                  = []
-    @State private var straightLineCoordinates: [CLLocationCoordinate2D]   = []
+    @State private var locations: [Location] = []
+
+    // ── Route line ──
+    @State private var straightLineCoordinates: [CLLocationCoordinate2D] = []
+    @State private var routeTask: Task<Void, Never>? = nil
 
     // ── Navigation ──
-    @State private var navigatingTo: Location?      // nil = tidak sedang navigasi
+    @State private var navigatingTo: Location?
 
     // ── UI ──
     @State private var showSavedMarks = false
-
-    // ─────────────────────────────────────────────
 
     var body: some View {
         ZStack {
             mapLayer
             overlayButtons
         }
-        // Sheet: daftar pin tersimpan
         .sheet(isPresented: $showSavedMarks) {
             SavedMarksView(
                 locations: $locations,
+                isPresented: $showSavedMarks,
                 onNavigate: { location in
-                    showSavedMarks = false
                     startNavigation(to: location)
                 },
-                onDelete: { location in
-                    locations.removeAll { $0.id == location.id }
-                }
+                userLocation: tracker.userLocation
             )
-            .presentationDetents([.medium, .large])
+            .presentationDetents([.large])
             .presentationDragIndicator(.visible)
-            .presentationBackground(Color.black)
+            .ignoresSafeArea()
         }
-        // Full-screen: compass navigation
         .fullScreenCover(item: $navigatingTo) { destination in
             CompassNavigationView(
                 destination: destination,
-                onEndNavigation: { navigatingTo = nil }
+                onEndNavigation: { endNavigation() }
             )
         }
         .onAppear(perform: requestLocationAndCenter)
     }
-
 
     // ─────────────────────────────────────────────
     // MARK: - Map Layer
@@ -87,18 +68,12 @@ struct MainView: View {
 
     private var mapLayer: some View {
         Map(position: $mapPosition) {
-
-            // Pin-pin yang tersimpan
             ForEach(locations) { location in
                 Annotation(location.name, coordinate: location.coordinate, anchor: .center) {
                     PinAnnotationView(emoji: location.emoji)
                 }
             }
-
-            // Posisi user
             UserAnnotation()
-
-            // Garis lurus ke tujuan
             if !straightLineCoordinates.isEmpty {
                 MapPolyline(coordinates: straightLineCoordinates)
                     .stroke(.blue, lineWidth: 4)
@@ -113,7 +88,6 @@ struct MainView: View {
             MapScaleView()
         }
     }
-
 
     // ─────────────────────────────────────────────
     // MARK: - Overlay Buttons
@@ -132,7 +106,6 @@ struct MainView: View {
         }
     }
 
-    // Tombol flag — buka daftar pin tersimpan
     private var savedMarksButton: some View {
         ZStack(alignment: .topTrailing) {
             CircleIconButton(icon: "flag", color: .blue) {
@@ -150,7 +123,6 @@ struct MainView: View {
         }
     }
 
-    // Tombol ADD MARK — simpan posisi user sekarang
     private var addMarkButton: some View {
         Button(action: addCurrentLocationPin) {
             Text("ADD MARK")
@@ -163,7 +135,6 @@ struct MainView: View {
         }
     }
 
-    // Tombol navigate — langsung navigasi ke pin terakhir
     private var navigateButton: some View {
         CircleIconButton(icon: "location.fill", color: .blue) {
             if let last = locations.last {
@@ -172,12 +143,10 @@ struct MainView: View {
         }
     }
 
-
     // ─────────────────────────────────────────────
     // MARK: - Actions
     // ─────────────────────────────────────────────
 
-    /// Minta izin lokasi dan pusatkan peta ke posisi user.
     private func requestLocationAndCenter() {
         tracker.startTracking()
         if let coordinate = tracker.userLocation?.coordinate {
@@ -189,7 +158,6 @@ struct MainView: View {
         }
     }
 
-    /// Simpan posisi GPS user saat ini sebagai pin baru.
     private func addCurrentLocationPin() {
         guard let location = tracker.currentLocation() else {
             print("[AddMark] Lokasi belum tersedia")
@@ -203,46 +171,43 @@ struct MainView: View {
         )
         locations.append(newPin)
     }
-    
-    
-    /// Mulai navigasi ke tujuan: tampilkan garis di peta, lalu buka CompassView.
+
     private func startNavigation(to destination: Location) {
+        routeTask?.cancel()
         drawRouteLine(to: destination)
         navigatingTo = destination
     }
 
-    /// Gambar garis lurus dari user → waypoints → tujuan.
-    /// Waypoints = pin-pin yang dibuat SETELAH tujuan (harus dilewati dulu sebelum sampai).
+    private func endNavigation() {
+        routeTask?.cancel()
+        routeTask = nil
+        straightLineCoordinates = []
+        navigatingTo = nil
+    }
+
     private func drawRouteLine(to destination: Location) {
-        Task {
-            for try await update in CLLocationUpdate.liveUpdates() {
-                guard let userCoord = update.location?.coordinate else { continue }
-
-                await MainActor.run {
-                    // Hapus pin yang sudah dekat (sudah dilewati user)
-                    locations.removeAll { isNear(userCoord, $0.coordinate) }
-
-                    // Kalau tujuan sudah tidak ada di list (sudah dilewati), bersihkan garis
-                    guard let destIndex = locations.firstIndex(where: { $0.id == destination.id }) else {
-                        straightLineCoordinates = []
-                        return
+        routeTask = Task {
+            do {
+                for try await update in CLLocationUpdate.liveUpdates() {
+                    if Task.isCancelled { break }
+                    guard let userCoord = update.location?.coordinate else { continue }
+                    await MainActor.run {
+                        guard !Task.isCancelled else { return }
+                        guard let destIndex = locations.firstIndex(where: { $0.id == destination.id }) else {
+                            straightLineCoordinates = []
+                            return
+                        }
+                        let waypoints = locations[(destIndex + 1)...]
+                            .sorted { $0.timestamp > $1.timestamp }
+                        straightLineCoordinates = [userCoord]
+                            + waypoints.map(\.coordinate)
+                            + [destination.coordinate]
                     }
-
-                    // Waypoints = pin setelah tujuan, diurutkan dari yang terbaru (harus dilewati duluan)
-                    // Contoh: pins = [P1, P2, P3, P4, P5], tujuan = P3
-                    // → rute: user → P5 → P4 → P3
-                    let waypoints = locations[(destIndex + 1)...]
-                        .sorted { $0.timestamp > $1.timestamp }
-
-                    straightLineCoordinates = [userCoord]
-                        + waypoints.map(\.coordinate)
-                        + [destination.coordinate]
                 }
-            }
+            } catch { }
         }
     }
 
-    /// Cek apakah dua koordinat berdekatan (< threshold).
     private func isNear(_ a: CLLocationCoordinate2D, _ b: CLLocationCoordinate2D) -> Bool {
         CLLocation(latitude: a.latitude, longitude: a.longitude)
             .distance(from: CLLocation(latitude: b.latitude, longitude: b.longitude))
@@ -250,15 +215,12 @@ struct MainView: View {
     }
 }
 
-
 // ─────────────────────────────────────────────
 // MARK: - Sub-views
 // ─────────────────────────────────────────────
 
-/// Tampilan pin di atas peta.
 private struct PinAnnotationView: View {
     let emoji: String
-
     var body: some View {
         Text(emoji)
             .font(.system(size: 20))
@@ -270,12 +232,10 @@ private struct PinAnnotationView: View {
     }
 }
 
-/// Tombol bulat dengan ikon SF Symbol.
 private struct CircleIconButton: View {
     let icon:   String
     let color:  Color
     let action: () -> Void
-
     var body: some View {
         Button(action: action) {
             Image(systemName: icon)
@@ -287,11 +247,6 @@ private struct CircleIconButton: View {
         }
     }
 }
-
-
-// ─────────────────────────────────────────────
-// MARK: - Preview
-// ─────────────────────────────────────────────
 
 #Preview {
     MainView()

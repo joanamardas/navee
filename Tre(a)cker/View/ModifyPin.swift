@@ -1,161 +1,124 @@
 import SwiftUI
+import CoreLocation
 
 struct ModifyPin: View {
     @Environment(\.dismiss) var dismiss
 
-    @State private var name: String = "Checkpoint 1"
-    @State private var emoji: String = "📍"
-    @State private var notes: String = ""
+    let location: Location
+    var onSave: (Location) -> Void
+    var onDelete: () -> Void
 
+    @State private var name: String
+    @State private var emoji: String
+    @State private var notes: String = ""
     @FocusState private var isEmojiFieldFocused: Bool
 
-    // Mock data
-    let latitude: Double = -6.2000
-    let longitude: Double = 106.8166
-    let createdDate = Date()
-    let distance: Double = 125
+    init(location: Location, onSave: @escaping (Location) -> Void, onDelete: @escaping () -> Void) {
+        self.location = location
+        self.onSave   = onSave
+        self.onDelete = onDelete
+        _name  = State(initialValue: location.name)
+        _emoji = State(initialValue: location.emoji)
+    }
 
     var body: some View {
-        NavigationView {
-            //Color.black.edgesIgnoringSafeArea(.all)
-            
-            Form {
-                
-                // MARK: - Editable: Name
-                Section {
-                    HStack(spacing: 12) {
-                        TextField("Location name", text: $name)
-                        
-                        Button {
-                            isEmojiFieldFocused = true
-                        } label: {
-                            ZStack {
-                                Circle()
-                                    .fill(Color(.systemGray5))
-                                    .frame(width: 44, height: 44)
-                                
-                                Text(emoji.isEmpty ? "📍" : emoji)
-                                    .font(.title3)
-                            }
+        Form {
+            // Name + Emoji
+            Section {
+                HStack(spacing: 12) {
+                    TextField("Location name", text: $name)
+                    Button {
+                        isEmojiFieldFocused = true
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .fill(Color(.systemGray5))
+                                .frame(width: 44, height: 44)
+                            Text(emoji.isEmpty ? "📍" : emoji)
+                                .font(.title3)
                         }
-                        .buttonStyle(.plain)
                     }
-                    .padding(.vertical, 6)
-                    .overlay {
-                        TextField("", text: $emoji)
-                            .focused($isEmojiFieldFocused)
-                            .opacity(0)
-                            .allowsHitTesting(false)
-                    }
+                    .buttonStyle(.plain)
                 }
-                
-                // MARK: - Editable: Notes
-                Section {
-                    TextField("Add a note", text: $notes, axis: .vertical)
-                        .lineLimit(3...6)
+                .padding(.vertical, 6)
+                .overlay {
+                    TextField("", text: $emoji)
+                        .focused($isEmojiFieldFocused)
+                        .opacity(0)
+                        .allowsHitTesting(false)
                 }
-            
-                // MARK: - Read Only: Details
-                VStack(spacing: 16) {
-                        
-                       //header: Text("Details"))
-                        // Distance
-                        detailRow(
-                            label: "Distance",
-                            value: "\(Int(distance)) m away"
-                        )
-
-                        Divider()
-
-                        // Coordinates
-                        detailRow(
-                            label: "Coordinates",
-                            value: "\(latitude, default: "%.4f"), \(longitude, default: "%.4f")"
-                        )
-
-                        Divider()
-
-                        // DateTime
-                        detailRow(
-                            label: "Saved",
-                            value: formattedDateTime(createdDate)
-                        )
-                    }
-                    .padding(.vertical, 4)
-                
-
-                // MARK: - Delete
-                Section {
-                        Button(role: .destructive) {
-                            // delete action
-                        } label: {
-                            Label("Delete Location", systemImage: "trash")
-                        }
-                }
-                .foregroundStyle(Color(.systemRed))
             }
-            .navigationTitle("Edit Pin")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    if #available(iOS 26.0, *) {
-                        Button(role: .close) {
-                            dismiss()
-                        }
-                    } else {
-                        Button("Cancel") {
-                            dismiss()
-                        }
-                    }
+
+            // Notes
+            Section {
+                TextField("Add a note", text: $notes, axis: .vertical)
+                    .lineLimit(3...6)
+            }
+
+            // Details (read-only)
+            Section {
+                VStack(spacing: 16) {
+                    detailRow(label: "Altitude", value: "\(Int(location.altitude)) m")
+                    Divider()
+                    detailRow(
+                        label: "Coordinates",
+                        value: String(format: "%.4f, %.4f",
+                                     location.coordinate.latitude,
+                                     location.coordinate.longitude)
+                    )
+                    Divider()
+                    detailRow(label: "Saved", value: formattedDateTime(location.timestamp))
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    if #available(iOS 26.0, *) {
-                        Button(role: .confirm) {
-                            dismiss()
-                        }
-                    } else {
-                        Button("Save") {
-                            dismiss()
-                        } .disabled(name.isEmpty)
-                    }
+                .padding(.vertical, 4)
+            }
+
+            // Delete
+            Section {
+                Button(role: .destructive) {
+                    onDelete()
+                    dismiss()
+                } label: {
+                    Label("Delete Location", systemImage: "trash")
                 }
             }
         }
-        .preferredColorScheme(ColorScheme.dark)
+        .navigationTitle("Edit Pin")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(false)  // biarkan default chevron
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("", systemImage: "checkmark") {
+                    let updated = Location(
+                        id:         location.id,
+                        name:       name,
+                        coordinate: location.coordinate,
+                        timestamp:  location.timestamp,
+                        altitude:   location.altitude,
+                        emoji:      emoji
+                    )
+                    onSave(updated)
+                    dismiss()
+                }
+                .disabled(name.isEmpty)
+            }
+        }
+        .preferredColorScheme(.dark)
     }
+
     private func detailRow(label: String, value: String) -> some View {
         HStack(alignment: .top) {
-            Text(label)
-                .foregroundColor(.secondary)
-
+            Text(label).foregroundColor(.secondary)
             Spacer()
-
-            Text(value)
-                .multilineTextAlignment(.trailing)
-                .foregroundColor(.secondary)
+            Text(value).multilineTextAlignment(.trailing).foregroundColor(.secondary)
         }
     }
 
     private func formattedDateTime(_ date: Date) -> String {
-        let calendar = Calendar.current
-
-        let timeFormatter = DateFormatter()
-        timeFormatter.timeStyle = .short
-
-        if calendar.isDateInToday(date) {
-            return "Today, \(timeFormatter.string(from: date))"
-        } else if calendar.isDateInYesterday(date) {
-            return "Yesterday, \(timeFormatter.string(from: date))"
-        } else {
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateStyle = .medium
-            return "\(dateFormatter.string(from: date)), \(timeFormatter.string(from: date))"
-        }
+        let cal = Calendar.current
+        let tf  = DateFormatter(); tf.timeStyle = .short
+        if cal.isDateInToday(date)     { return "Today, \(tf.string(from: date))" }
+        if cal.isDateInYesterday(date) { return "Yesterday, \(tf.string(from: date))" }
+        let df = DateFormatter(); df.dateStyle = .medium
+        return "\(df.string(from: date)), \(tf.string(from: date))"
     }
 }
-
-#Preview {
-    ModifyPin()
-}
-
-
