@@ -7,13 +7,13 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		1F5CAD492FA43794003790DF /* Tre(a)cker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Tre(a)cker.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1F5CAD492FA43794003790DF /* Navee.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Navee.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		1F5CAD4B2FA43794003790DF /* Tre(a)cker */ = {
+		1F5CAD4B2FA43794003790DF /* Navee */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Tre(a)cker";
+			path = Navee;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -32,7 +32,7 @@
 		1F5CAD402FA43794003790DF = {
 			isa = PBXGroup;
 			children = (
-				1F5CAD4B2FA43794003790DF /* Tre(a)cker */,
+				1F5CAD4B2FA43794003790DF /* Navee */,
 				1F5CAD4A2FA43794003790DF /* Products */,
 			);
 			sourceTree = "<group>";
@@ -40,7 +40,7 @@
 		1F5CAD4A2FA43794003790DF /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				1F5CAD492FA43794003790DF /* Tre(a)cker.app */,
+				1F5CAD492FA43794003790DF /* Navee.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -48,9 +48,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		1F5CAD482FA43794003790DF /* Tre(a)cker */ = {
+		1F5CAD482FA43794003790DF /* Navee */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 1F5CAD542FA43795003790DF /* Build configuration list for PBXNativeTarget "Tre(a)cker" */;
+			buildConfigurationList = 1F5CAD542FA43795003790DF /* Build configuration list for PBXNativeTarget "Navee" */;
 			buildPhases = (
 				1F5CAD452FA43794003790DF /* Sources */,
 				1F5CAD462FA43794003790DF /* Frameworks */,
@@ -61,13 +61,13 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				1F5CAD4B2FA43794003790DF /* Tre(a)cker */,
+				1F5CAD4B2FA43794003790DF /* Navee */,
 			);
-			name = "Tre(a)cker";
+			name = Navee;
 			packageProductDependencies = (
 			);
 			productName = "Tre(a)cker";
-			productReference = 1F5CAD492FA43794003790DF /* Tre(a)cker.app */;
+			productReference = 1F5CAD492FA43794003790DF /* Navee.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -85,7 +85,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 1F5CAD442FA43794003790DF /* Build configuration list for PBXProject "Tre(a)cker" */;
+			buildConfigurationList = 1F5CAD442FA43794003790DF /* Build configuration list for PBXProject "Navee" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -99,7 +99,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				1F5CAD482FA43794003790DF /* Tre(a)cker */,
+				1F5CAD482FA43794003790DF /* Navee */,
 			);
 		};
 /* End PBXProject section */
@@ -315,7 +315,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1F5CAD442FA43794003790DF /* Build configuration list for PBXProject "Tre(a)cker" */ = {
+		1F5CAD442FA43794003790DF /* Build configuration list for PBXProject "Navee" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1F5CAD522FA43795003790DF /* Debug */,
@@ -324,7 +324,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		1F5CAD542FA43795003790DF /* Build configuration list for PBXNativeTarget "Tre(a)cker" */ = {
+		1F5CAD542FA43795003790DF /* Build configuration list for PBXNativeTarget "Navee" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1F5CAD552FA43795003790DF /* Debug */,

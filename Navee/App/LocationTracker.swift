@@ -1,6 +1,4 @@
 // LocationTracker.swift
-// ObservableObject yang mengurus semua urusan GPS & kompas.
-// View cukup @StateObject / @ObservedObject dari sini — tidak perlu sentuh CLLocationManager langsung.
 
 import Foundation
 import CoreLocation
@@ -21,7 +19,7 @@ class LocationTracker: NSObject, ObservableObject, CLLocationManagerDelegate {
 
     // Filter agar update tidak terlalu sering & boros baterai
     private enum Filter {
-        static let maxAccuracy: Double   = 50  // Abaikan GPS jika akurasi > 50 m
+        static let maxAccuracy: Double   = 20  // Abaikan GPS jika akurasi > 20 m
         static let headingFilter: Double = 1   // Update kompas minimal tiap 1°
         static let distanceFilter: Double = 1  // Update GPS minimal tiap 1 m
     }
@@ -59,7 +57,8 @@ class LocationTracker: NSObject, ObservableObject, CLLocationManagerDelegate {
 
     /// Ambil posisi terkini (dari cache kalau GPS belum update).
     func currentLocation() -> CLLocation? {
-        userLocation ?? manager.location
+        return userLocation ?? manager.location
+        
     }
 
     // MARK: - Private Helpers
