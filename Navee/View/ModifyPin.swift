@@ -14,7 +14,6 @@ struct ModifyPin: View {
         Form {
             nameSection
             iconSection
-            notesSection
             infoSection
             deleteSection
         }
@@ -39,13 +38,6 @@ struct ModifyPin: View {
     private var iconSection: some View {
         Section {
             IconPicker(selectedIcon: $location.emoji)
-        }
-    }
-
-    private var notesSection: some View {
-        Section {
-            TextField("Add a note", text: $location.notes, axis: .vertical)
-                .lineLimit(3...6)
         }
     }
 
