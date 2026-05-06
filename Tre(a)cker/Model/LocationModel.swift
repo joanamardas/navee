@@ -1,14 +1,22 @@
+// LocationModel.swift
+// Model utama yang merepresentasikan satu titik/pin yang disimpan user di peta.
+
 import Foundation
 import CoreLocation
 
-struct Location: Identifiable, Hashable, Equatable {
-    let id: UUID
-    var name: String
-    var coordinate: CLLocationCoordinate2D
-    var timestamp: Date
-    var altitude: Double
-    var notes: String
-    var emoji: String
+struct Location: Identifiable, Hashable {
+
+    // MARK: - Properties
+
+    let id: UUID          // ID unik, otomatis dibuat
+    var name: String      // Nama titik, bisa diedit user
+    var coordinate: CLLocationCoordinate2D  // Koordinat GPS (lat & lon)
+    var timestamp: Date   // Waktu pin dibuat
+    var altitude: Double  // Ketinggian dalam meter
+    var emoji: String     // Icon SF Symbol yang dipilih user
+    var notes: String     // Catatan opsional dari user
+
+    // MARK: - Init
 
     init(
         id: UUID = UUID(),
@@ -28,7 +36,9 @@ struct Location: Identifiable, Hashable, Equatable {
         self.notes      = notes
     }
 
-    // Hashable & Equatable manual karena CLLocationCoordinate2D tidak conform
+    // MARK: - Hashable & Equatable
+    // CLLocationCoordinate2D tidak otomatis conform, jadi kita pakai id saja.
+
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }

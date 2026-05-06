@@ -1,24 +1,12 @@
-////
-////  ContentView.swift
-////  Tre(a)cker
-////
-////  Created by Rosamond Patricia Selamat Lie on 01/05/26.
-////
-//
-//import SwiftUI
-//
-//struct ContentView: View {
-//    var body: some View {
-//        VStack {
-//            Image(systemName: "globe")
-//                .imageScale(.large)
-//                .foregroundStyle(.tint)
-//            Text("Hello, world!")
-//        }
-//        .padding()
-//    }
-//}
-//
-//#Preview {
-//    ContentView()
-//}
+// ContentView.swift
+// Entry point UI app — cukup tampilkan MainView.
+
+import SwiftUI
+
+struct ContentView: View {
+    var body: some View {
+        MainView()
+    }
+}
+
+#Preview { ContentView() }
