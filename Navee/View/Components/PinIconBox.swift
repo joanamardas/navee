@@ -10,25 +10,24 @@ import SwiftUI
 struct PinIconBox: View {
     let emoji: String
     var size: CGFloat = 40
-    var iconSize: CGFloat = 18
-
+    var iconSize: CGFloat = 30
+    
     private var colors: (top: Color, bottom: Color) {
         PinIconHelper.colors(for: PinIconHelper.iconName(for: emoji))
     }
-
+    
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: size * 0.25, style: .continuous)
-                .fill(LinearGradient(
-                    colors: [colors.top, colors.bottom],
-                    startPoint: .top,
-                    endPoint: .bottom
-                ))
+                .fill(Color.black)
                 .frame(width: size, height: size)
-
+            
             Image(systemName: PinIconHelper.iconName(for: emoji))
-                .font(.system(size: iconSize, weight: .semibold))
-                .foregroundColor(.white)
+                .resizable()
+                .scaledToFit()
+                .frame(width: iconSize, height: iconSize)
+                .foregroundColor(colors.top)
+            
         }
     }
 }
