@@ -11,54 +11,53 @@ import CoreLocation
 struct SavedMarkRow: View {
     let location: Location
     var userLocation: CLLocation?
-    var onNavigate: () -> Void
+    //    var onNavigate: () -> Void
+    var onSelect: () -> Void
     var onEdit: () -> Void
-
+    
     var body: some View {
         HStack(spacing: 12) {
             PinIconBox(emoji: location.emoji)
-
+            
             locationInfo
-
+            
             Spacer()
-
-            NavigateButton(action: onNavigate)
-
+            
+            //            NavigateButton(action: onNavigate)
+            //                .buttonStyle(.borderless)
+            
             Button("Edit", action: onEdit)
-                .buttonStyle(.plain)
+                .buttonStyle(.borderless)
                 .foregroundColor(.blue)
                 .font(.subheadline)
         }
-        .padding(.vertical, 12)
+        .padding(.vertical, 20)
         .contentShape(Rectangle())
+        .onTapGesture {
+            onSelect()
+        }
     }
-
+    
     // MARK: - Subviews
-
+    
     private var locationInfo: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(location.name)
                 .font(.headline)
                 .foregroundColor(.primary)
-
+            
             HStack(spacing: 6) {
-                Label(
-                    location.formattedDistance(from: userLocation),
-                    systemImage: "location.fill"
-                )
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-
+                Text(location.formattedDistance(from: userLocation))
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
                 Text("·")
                     .font(.subheadline)
                     .foregroundColor(.secondary.opacity(0.4))
-
-                Label(
-                    "\(Int(location.altitude)) mdpl",
-                    systemImage: "mountain.2.fill"
-                )
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+                
+                Text("\(Int(location.altitude)) mdpl")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
             }
         }
     }
@@ -68,9 +67,9 @@ struct SavedMarkRow: View {
 
 private struct NavigateButton: View {
     let action: () -> Void
-
+    
     @State private var isPressed = false
-
+    
     var body: some View {
         Button(action: action) {
             Image(systemName: isPressed ? "location.circle.fill" : "location.circle")
@@ -104,11 +103,14 @@ private struct NavigateButton: View {
                 notes: ""
             ),
             userLocation: CLLocation(latitude: -6.293, longitude: 106.645),
-            onNavigate: {},
+            //            onNavigate: {},
+            onSelect: {  },
             onEdit: {}
+            
         )
         .listRowBackground(Color.black)
     }
     .listStyle(.plain)
     .preferredColorScheme(.dark)
 }
+

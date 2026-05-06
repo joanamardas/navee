@@ -4,6 +4,7 @@ import CoreLocation
 
 struct MainView: View {
 
+    @Environment(\.dismiss) private var dismiss
     @State private var mapPosition = MapCameraPosition.region(
         MKCoordinateRegion(
             center: MapConfig.defaultCenter,
@@ -35,10 +36,42 @@ struct MainView: View {
             if !isTracking {
                 StartOverlay { isTracking = true }
             }
+
+            
         }
-        .onTapGesture {
-            withAnimation(.easeInOut(duration: 0.18)) { selectedPinID = nil }
+        .sheet(isPresented: .constant(selectedPinID != nil)) {
+            NavigationStack {
+                if let selectedID = selectedPinID,
+                   let selectedLocation = locations.first(where: { $0.id == selectedID }) {
+                    BottomPinDetailView(
+                        location: selectedLocation,
+                        userLocation: tracker.userLocation,
+                        onNavigate: {
+                            openCompass(to: selectedLocation)
+                        }
+                    )
+                    .presentationDetents([.fraction(0.3)])
+                    .toolbarVisibility(.visible, for: .navigationBar)
+                    .toolbar {
+                        Button("back", systemImage: "xmark") {
+                            dismiss()
+                            selectedPinID = nil
+                            
+                        }
+                    }
+                }
+            }
         }
+        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: selectedPinID)
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                if selectedPinID != nil {
+                    withAnimation(.easeInOut(duration: 0.18)) {
+                        selectedPinID = nil
+                    }
+                }
+            }
+        )
         .fullScreenCover(isPresented: compassNavigationBinding) {
             if let idx = compassDestinationIndex {
                 CompassNavigationView(
@@ -53,6 +86,7 @@ struct MainView: View {
                 locations: $locations,
                 isPresented: $showSavedMarks,
                 onNavigate: handleNavigate,
+                onSelect: handleSelect,
                 userLocation: tracker.userLocation
             )
             .presentationDetents([.large])
@@ -68,6 +102,7 @@ struct MainView: View {
             if let userCoord = tracker.userLocation?.coordinate {
                 Annotation("", coordinate: userCoord, anchor: .center) {
                     FootstepMarker()
+                        .allowsHitTesting(false)
                 }
             }
 
@@ -76,9 +111,9 @@ struct MainView: View {
                     DynamicTearDropPin(
                         location: location,
                         isSelected: selectedPinID == location.id,
-                        onTap: { toggleSelection(for: location.id) },
-                        onNavigate: { openCompass(to: location) }
+                        onTap: { toggleSelection(for: location.id) }
                     )
+                    .zIndex(selectedPinID == location.id ? 1 : 0)
                 }
             }
         }
@@ -140,6 +175,20 @@ struct MainView: View {
         }
     }
 
+    private func handleSelect(_ location: Location) {
+        showSavedMarks = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            selectedPinID = location.id
+            withAnimation(.easeInOut(duration: 1)) {
+                mapPosition = .region(MKCoordinateRegion(
+                    center: location.coordinate,
+                    latitudinalMeters: MapConfig.defaultSpan,
+                    longitudinalMeters: MapConfig.defaultSpan
+                ))
+            }
+        }
+    }
+
     private func addMark() {
         guard let location = tracker.currentLocation() else {
             print("[AddMark] Lokasi belum tersedia")
@@ -156,15 +205,41 @@ struct MainView: View {
     }
 
     private func openCompass(to destination: Location) {
-        selectedPinID = nil
+        withAnimation {
+            selectedPinID = nil
+        }
         guard let idx = locations.firstIndex(where: { $0.id == destination.id }) else { return }
-        compassDestinationIndex = idx
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            compassDestinationIndex = idx
+        }
     }
 
     private func isNear(_ a: CLLocationCoordinate2D, _ b: CLLocationCoordinate2D) -> Bool {
         CLLocation(latitude: a.latitude, longitude: a.longitude)
             .distance(from: CLLocation(latitude: b.latitude, longitude: b.longitude))
             < MapConfig.nearbyThreshold
+    }
+}
+
+// MARK: - Corner Radius Helper
+
+extension View {
+    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
+        clipShape(RoundedCorner(radius: radius, corners: corners))
+    }
+}
+
+struct RoundedCorner: Shape {
+    var radius: CGFloat
+    var corners: UIRectCorner
+
+    func path(in rect: CGRect) -> Path {
+        let path = UIBezierPath(
+            roundedRect: rect,
+            byRoundingCorners: corners,
+            cornerRadii: CGSize(width: radius, height: radius)
+        )
+        return Path(path.cgPath)
     }
 }
 

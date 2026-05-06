@@ -5,11 +5,12 @@ struct SavedMarksView: View {
     @Binding var locations: [Location]
     @Binding var isPresented: Bool
     var onNavigate: (Location) -> Void
+    var onSelect: (Location) -> Void
     var userLocation: CLLocation?
-
+    
     @State private var editingID: Location.ID? = nil
     @State private var compassIndex: Int? = nil
-
+    
     // Konversi editingID ↔ NavigationStack path
     private var navPath: Binding<[Location.ID]> {
         Binding(
@@ -17,14 +18,14 @@ struct SavedMarksView: View {
             set: { editingID = $0.first }
         )
     }
-
+    
     private var compassBinding: Binding<Bool> {
         Binding(
             get: { compassIndex != nil },
             set: { if !$0 { compassIndex = nil } }
         )
     }
-
+    
     var body: some View {
         NavigationStack(path: navPath) {
             content
@@ -56,9 +57,9 @@ struct SavedMarksView: View {
         }
         .preferredColorScheme(.dark)
     }
-
+    
     // MARK: - Content
-
+    
     @ViewBuilder
     private var content: some View {
         if locations.isEmpty {
@@ -69,14 +70,16 @@ struct SavedMarksView: View {
             pinList
         }
     }
-
+    
     private var pinList: some View {
         List {
             ForEach(locations) { location in
                 SavedMarkRow(
                     location: location,
                     userLocation: userLocation,
-                    onNavigate: { openCompass(for: location) },
+                    onSelect: {
+                        onSelect(location)
+                    },
                     onEdit: { editingID = location.id }
                 )
                 .listRowBackground(Color.black)
@@ -95,9 +98,9 @@ struct SavedMarksView: View {
         .scrollContentBackground(.hidden)
         .background(Color.black)
     }
-
+    
     // MARK: - Actions
-
+    
     private func openCompass(for location: Location) {
         if let idx = locations.firstIndex(where: { $0.id == location.id }) {
             compassIndex = idx
@@ -112,7 +115,7 @@ private struct ModifyPinWrapper: View {
     @Binding var locations: [Location]
     var userLocation: CLLocation?
     var onDeleted: () -> Void
-
+    
     var body: some View {
         if let index = locations.firstIndex(where: { $0.id == id }) {
             ModifyPin(
@@ -143,6 +146,7 @@ private struct ModifyPinWrapper: View {
                      altitude: 34, emoji: "",           notes: "")
         ]),
         isPresented: .constant(true),
-        onNavigate: { _ in }
+        onNavigate: { _ in },
+        onSelect: { _ in }
     )
 }
