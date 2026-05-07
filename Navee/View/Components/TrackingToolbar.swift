@@ -40,7 +40,7 @@ struct TrackingToolbar: View {
                             endPoint: .center
                         ))
                         .frame(width: 64, height: 64)
-                    Image(systemName: "flag.fill")
+                    Image(systemName: "mappin")
                         .font(.system(size: 26, weight: .semibold))
                         .foregroundColor(.white)
                 }
