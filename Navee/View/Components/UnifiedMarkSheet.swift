@@ -181,6 +181,15 @@ struct UnifiedMarkSheet: View {
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
+                            
+                            Button {
+                                onSelectOnMap(location)
+                                content        = .edit(location.id)
+                                selectedDetent = .large
+                            } label: {
+                                Label("Edit", systemImage: "pencil")
+                            }
+                            .tint(.blue)
                         }
                     }
                 }

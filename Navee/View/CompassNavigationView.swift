@@ -96,9 +96,7 @@ struct CompassNavigationView: View {
                 pointsPassed:     pointsPassed,
                 totalSteps:       totalSteps,
                 onEndNavigation: {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                        showEndConfirm = true
-                    }
+                    showEndConfirm = true
                 },
                 onExit: {
                     onEndNavigation()
@@ -110,26 +108,14 @@ struct CompassNavigationView: View {
                 ArrivalFlashOverlay(kind: flash, opacity: flashOpacity)
                     .allowsHitTesting(false)
             }
-
-            // End Navigation modal — reusable ConfirmAlertModal
-            if showEndConfirm {
-                ConfirmAlertModal(
-                    icon: "xmark.circle.fill",
-                    iconTint: Color(red: 1.0, green: 0.33, blue: 0.30),
-                    title: "End Navigation?",
-                    message: "Your current navigation session\nwill be stopped.",
-                    confirmLabel: "End",
-                    confirmTint: Color(red: 1.0, green: 0.33, blue: 0.30),
-                    onCancel: {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                            showEndConfirm = false
-                        }
-                    },
-                    onConfirm: {
-                        onEndNavigation()
-                    }
-                )
+        }
+        .alert("End Navigation?", isPresented: $showEndConfirm) {
+            Button("End", role: .destructive) {
+                onEndNavigation()
             }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Your current navigation session will be stopped.")
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: showEndConfirm)
         .onAppear    { tracker.startTracking() }
