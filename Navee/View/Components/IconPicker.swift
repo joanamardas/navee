@@ -2,8 +2,6 @@
 //  IconPicker.swift
 //  Navee
 //
-//  Created by neena on 06/05/26.
-//
 
 import SwiftUI
 
@@ -13,23 +11,20 @@ struct IconPicker: View {
     @Binding var selectedIcon: String
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(PinIconHelper.allIcons, id: \.self) { icon in
-                    IconPickerCell(
-                        icon: icon,
-                        isSelected: selectedIcon == icon
-                    ) {
-                        withAnimation(.spring(response: 0.25, dampingFraction: 0.65)) {
-                            selectedIcon = icon
-                        }
+        HStack(spacing: 12) {
+            ForEach(PinIconHelper.allIcons, id: \.self) { icon in
+                IconPickerCell(
+                    icon: icon,
+                    isSelected: selectedIcon == icon
+                ) {
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.65)) {
+                        selectedIcon = icon
                     }
-                    .equatable()
                 }
+                .equatable()
             }
-            .padding(.vertical, 4)
-            .padding(.horizontal, 2)
         }
+        .padding(.vertical, 4)
     }
 }
 
@@ -74,6 +69,10 @@ private struct IconPickerCell: View, Equatable {
 
 #Preview {
     @Previewable @State var selected = "mappin"
-    return Form { IconPicker(selectedIcon: $selected) }
-        .preferredColorScheme(.dark)
+    return Form {
+        ScrollView(.horizontal, showsIndicators: false) {
+            IconPicker(selectedIcon: $selected)
+        }
+    }
+    .preferredColorScheme(.dark)
 }
