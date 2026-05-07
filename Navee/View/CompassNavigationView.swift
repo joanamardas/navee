@@ -111,98 +111,24 @@ struct CompassNavigationView: View {
                     .allowsHitTesting(false)
             }
 
-            // End Navigation modal — kotak kecil di tengah layar
+            // End Navigation modal — reusable ConfirmAlertModal
             if showEndConfirm {
-                ZStack {
-                    // Dim backdrop
-                    Color.black.opacity(0.55)
-                        .ignoresSafeArea()
-                        .onTapGesture {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                showEndConfirm = false
-                            }
+                ConfirmAlertModal(
+                    icon: "xmark.circle.fill",
+                    iconTint: Color(red: 1.0, green: 0.33, blue: 0.30),
+                    title: "End Navigation?",
+                    message: "Your current navigation session\nwill be stopped.",
+                    confirmLabel: "End",
+                    confirmTint: Color(red: 1.0, green: 0.33, blue: 0.30),
+                    onCancel: {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            showEndConfirm = false
                         }
-
-                    // Modal box — fixedSize supaya tidak stretch
-                    VStack(spacing: 0) {
-                        // Icon
-                        ZStack {
-                            Circle()
-                                .fill(Color(red: 1.0, green: 0.23, blue: 0.19).opacity(0.15))
-                                .frame(width: 56, height: 56)
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 26, weight: .semibold))
-                                .foregroundStyle(
-                                    Color(red: 1.0, green: 0.33, blue: 0.30),
-                                    Color(red: 1.0, green: 0.23, blue: 0.19).opacity(0.2)
-                                )
-                        }
-                        .padding(.top, 28)
-                        .padding(.bottom, 14)
-
-                        Text("End Navigation?")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.white)
-
-                        Text("Your current navigation session\nwill be stopped.")
-                            .font(.system(size: 14, weight: .regular))
-                            .foregroundColor(.white.opacity(0.5))
-                            .multilineTextAlignment(.center)
-                            .lineSpacing(2)
-                            .padding(.top, 6)
-                            .padding(.horizontal, 24)
-                            .padding(.bottom, 24)
-
-                        Rectangle()
-                            .fill(Color.white.opacity(0.07))
-                            .frame(height: 1)
-
-                        HStack(spacing: 0) {
-                            Button {
-                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                    showEndConfirm = false
-                                }
-                            } label: {
-                                Text("Cancel")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.75))
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 52)
-                            }
-                            .buttonStyle(ModalButtonStyle())
-
-                            Rectangle()
-                                .fill(Color.white.opacity(0.07))
-                                .frame(width: 1, height: 52)
-
-                            Button {
-                                onEndNavigation()
-                            } label: {
-                                Text("End")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(Color(red: 1.0, green: 0.33, blue: 0.30))
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 52)
-                            }
-                            .buttonStyle(ModalButtonStyle())
-                        }
+                    },
+                    onConfirm: {
+                        onEndNavigation()
                     }
-                    .fixedSize(horizontal: false, vertical: true)  // ← kunci modal tidak stretch
-                    .background(
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .fill(.ultraThinMaterial)
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .fill(Color(red: 0.14, green: 0.14, blue: 0.15).opacity(0.7))
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .strokeBorder(Color.white.opacity(0.1), lineWidth: 0.75)
-                        }
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    .padding(.horizontal, 48)
-                    .shadow(color: .black.opacity(0.4), radius: 30, x: 0, y: 10)
-                }
-                .transition(.opacity.combined(with: .scale(scale: 0.93)))
+                )
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: showEndConfirm)
