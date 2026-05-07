@@ -42,6 +42,7 @@ struct UnifiedMarkSheet: View {
     @State private var isDismissing:      Bool = false
     @State private var isGoingToEdit:     Bool = false
     @State private var isExpandingForEdit: Bool = false
+    @State private var locationToDelete: Location? = nil
 
     private let spring: Animation = .spring(response: 0.4, dampingFraction: 0.82)
 
@@ -177,7 +178,8 @@ struct UnifiedMarkSheet: View {
                         .listRowSeparatorTint(Color.white.opacity(0.1))
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
-                                locations.removeAll { $0.id == location.id }
+                                locationToDelete = location
+//                                locations.removeAll { $0.id == location.id }
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
@@ -195,6 +197,22 @@ struct UnifiedMarkSheet: View {
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
+                .alert("Delete this location?", isPresented: Binding(
+                    get: { locationToDelete != nil },
+                    set: { if !$0 { locationToDelete = nil } }
+                )) {
+                    Button("Delete", role: .destructive) {
+                        if let loc = locationToDelete {
+                            locations.removeAll { $0.id == loc.id }
+                            locationToDelete = nil
+                        }
+                    }
+                    Button("Cancel", role: .cancel) {
+                        locationToDelete = nil
+                    }
+                } message: {
+                    Text("This action cannot be undone.")
+                }
             }
         }
         .navigationTitle("Saved Points")
