@@ -19,7 +19,10 @@ struct MainView: View {
 
     @StateObject private var tracker = LocationTracker()
 
-    @State private var locations:               [Location]        = []
+//    @State private var locations:               [Location]        = []
+    @State private var locations: [Location] = [
+        DummyLocations.demoPin
+    ]
     @State private var isTracking:              Bool              = false
     @State private var sheetContent:            MarkSheetContent? = nil
     @State private var compassDestinationIndex: Int?              = nil

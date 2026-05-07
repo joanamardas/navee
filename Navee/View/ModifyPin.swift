@@ -2,20 +2,21 @@
 //  ModifyPin.swift
 //  Navee
 //
-
 import SwiftUI
 import CoreLocation
 
 struct ModifyPin: View {
+    @Environment(\.dismiss) var dismiss
     @Binding var location: Location
     var userLocation: CLLocation?
     var onSave:   () -> Void
     var onDelete: () -> Void
-
+    
     @State private var draft: Location
-
+    @State private var showDeleteAlert = false  // tambah ini
+    
     private let nameLimit = 20
-
+    
     init(
         location: Binding<Location>,
         userLocation: CLLocation?,
@@ -28,34 +29,50 @@ struct ModifyPin: View {
         self.onDelete     = onDelete
         self._draft       = State(initialValue: location.wrappedValue)
     }
-
+    
     var body: some View {
-        Form {
-            nameSection
-            iconSection
-            infoSection
-            deleteSection
-        }
-        .scrollContentBackground(.hidden)   // ← matikan background UITableView
-        .background(Color.black)            // ← langsung hitam dari frame pertama
-        .navigationTitle("Edit Point")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button {
-                    location = draft
-                    onSave()
-                } label: {
-                    Image(systemName: "checkmark")
-                }
-                .disabled(draft.name.isEmpty)
+        ZStack {
+            Form {
+                nameSection
+                iconSection
+                infoSection
+                deleteSection
             }
+            .scrollContentBackground(.hidden)
+            .background(Color.black)
+            .navigationTitle("Edit Point")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        location = draft
+                        onSave()
+                    } label: {
+                        Image(systemName: "checkmark")
+                    }
+                    .disabled(draft.name.isEmpty)
+                }
+            }
+            .preferredColorScheme(.dark)
+            .alert("Are you sure you want to delete  this location?", isPresented: $showDeleteAlert) {
+                
+                Button("Delete", role: .destructive) {
+                    onDelete()
+                    dismiss()
+                }
+                
+                Button("Cancel", role: .cancel) { }
+                
+            } message: {
+                Text("This action cannot be undone.")
+            }
+            
         }
-        .preferredColorScheme(.dark)
+        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: showDeleteAlert)
     }
-
+    
     // MARK: - Name
-
+    
     private var nameSection: some View {
         Section {
             HStack {
@@ -71,17 +88,17 @@ struct ModifyPin: View {
             }
         }
     }
-
+    
     // MARK: - Icon
-
+    
     private var iconSection: some View {
         Section {
             IconPicker(selectedIcon: $draft.emoji)
         }
     }
-
+    
     // MARK: - Info
-
+    
     private var infoSection: some View {
         Section {
             InfoRow(
@@ -106,13 +123,15 @@ struct ModifyPin: View {
             )
         }
     }
-
+    
     // MARK: - Delete
-
+    
     private var deleteSection: some View {
         Section {
             Button(role: .destructive) {
-                onDelete()
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                    showDeleteAlert = true  // tampilkan alert, bukan langsung delete
+                }
             } label: {
                 Text("Delete Location")
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -120,8 +139,6 @@ struct ModifyPin: View {
         }
     }
 }
-
-// MARK: - Preview
 
 #Preview {
     NavigationStack {
