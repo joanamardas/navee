@@ -2,21 +2,21 @@
 //  ModifyPin.swift
 //  Navee
 //
+
 import SwiftUI
 import CoreLocation
 
 struct ModifyPin: View {
-    @Environment(\.dismiss) var dismiss
     @Binding var location: Location
     var userLocation: CLLocation?
     var onSave:   () -> Void
     var onDelete: () -> Void
-    
-    @State private var draft: Location
-    @State private var showDeleteAlert = false  // tambah ini
-    
+
+    @State private var draft:            Location
+    @State private var showDeleteAlert = false
+
     private let nameLimit = 20
-    
+
     init(
         location: Binding<Location>,
         userLocation: CLLocation?,
@@ -29,109 +29,77 @@ struct ModifyPin: View {
         self.onDelete     = onDelete
         self._draft       = State(initialValue: location.wrappedValue)
     }
-    
+
     var body: some View {
-        ZStack {
-            Form {
-                nameSection
-                iconSection
-                infoSection
-                deleteSection
-            }
-            .scrollContentBackground(.hidden)
-            .background(Color.black)
-            .navigationTitle("Edit Point")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        location = draft
-                        onSave()
-                    } label: {
-                        Image(systemName: "checkmark")
-                    }
-                    .disabled(draft.name.isEmpty)
-                }
-            }
-            .preferredColorScheme(.dark)
-            .alert("Are you sure you want to delete  this location?", isPresented: $showDeleteAlert) {
-                
-                Button("Delete", role: .destructive) {
-                    onDelete()
-                    dismiss()
-                }
-                
-                Button("Cancel", role: .cancel) { }
-                
-            } message: {
-                Text("This action cannot be undone.")
-            }
-            
+        List {
+            nameSection
+            IconPickerSection(selectedIcon: $draft.emoji)
+            infoSection
+            deleteSection
         }
-        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: showDeleteAlert)
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(Color.black)
+        .navigationTitle("Edit Point")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button {
+                    location = draft
+                    onSave()
+                } label: {
+                    Image(systemName: "checkmark")
+                }
+                .disabled(draft.name.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+        }
+        .preferredColorScheme(.dark)
+        .alert("Delete Location?", isPresented: $showDeleteAlert) {
+            Button("Delete", role: .destructive) { onDelete() }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("This action cannot be undone.")
+        }
     }
-    
+
     // MARK: - Name
-    
+
     private var nameSection: some View {
         Section {
             HStack {
-                TextField("Point name", text: Binding(
-                    get: { draft.name },
-                    set: { draft.name = String($0.prefix(nameLimit)) }
-                ))
+                TextField("Point name", text: $draft.name)
+                    .onChange(of: draft.name) { _, new in
+                        if new.count > nameLimit {
+                            draft.name = String(new.prefix(nameLimit))
+                        }
+                    }
                 Spacer()
-                Text("\(draft.name.count)/\(nameLimit)")
+                Text("\(min(draft.name.count, nameLimit))/\(nameLimit)")
                     .font(.caption)
                     .foregroundStyle(draft.name.count >= nameLimit ? .red : .secondary)
                     .monospacedDigit()
+                    .animation(.none, value: draft.name.count)
             }
         }
     }
-    
-    // MARK: - Icon
-    
-    private var iconSection: some View {
-        Section {
-            IconPicker(selectedIcon: $draft.emoji)
-        }
-    }
-    
+
     // MARK: - Info
-    
+
     private var infoSection: some View {
         Section {
-            InfoRow(
-                label: "Distance",
-                value: draft.formattedDistance(from: userLocation, suffix: "away")
-            )
-            InfoRow(
-                label: "Altitude",
-                value: "\(Int(draft.altitude)) masl"
-            )
-            InfoRow(
-                label: "Coordinates",
-                value: String(
-                    format: "%.4f, %.4f",
-                    draft.coordinate.latitude,
-                    draft.coordinate.longitude
-                )
-            )
-            InfoRow(
-                label: "Saved",
-                value: draft.timestamp.relativeFormatted()
-            )
+            InfoRow(label: "Distance", value: draft.formattedDistance(from: userLocation, suffix: "away"))
+            InfoRow(label: "Altitude", value: "\(Int(draft.altitude)) masl")
+            InfoRow(label: "Coordinates", value: String(format: "%.4f, %.4f", draft.coordinate.latitude, draft.coordinate.longitude))
+            InfoRow(label: "Saved", value: draft.timestamp.relativeFormatted())
         }
     }
-    
+
     // MARK: - Delete
-    
+
     private var deleteSection: some View {
         Section {
             Button(role: .destructive) {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
-                    showDeleteAlert = true  // tampilkan alert, bukan langsung delete
-                }
+                showDeleteAlert = true
             } label: {
                 Text("Delete Location")
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -139,6 +107,70 @@ struct ModifyPin: View {
         }
     }
 }
+
+// MARK: - IconPickerSection
+
+private struct IconPickerSection: View {
+    @Binding var selectedIcon: String
+    @State private var scrollOffset: CGFloat = 0
+    @State private var contentWidth: CGFloat = 0
+    @State private var viewWidth:    CGFloat = 0
+
+    private var showLeftFade:  Bool { scrollOffset > 8 }
+    private var showRightFade: Bool { scrollOffset < contentWidth - viewWidth - 8 }
+
+    var body: some View {
+        Section {
+            ScrollView(.horizontal, showsIndicators: false) {
+                IconPicker(selectedIcon: $selectedIcon)
+                    .padding(.leading, 2)
+                    .padding(.trailing, 32) // trailing lebih lebar supaya icon terakhir keliatan terpotong fade
+                    .background(
+                        GeometryReader { geo in
+                            Color.clear.onAppear { contentWidth = geo.size.width }
+                        }
+                    )
+            }
+            .onScrollGeometryChange(for: CGFloat.self) { geo in
+                geo.contentOffset.x
+            } action: { _, new in
+                scrollOffset = new
+            }
+            .background(
+                GeometryReader { geo in
+                    Color.clear.onAppear { viewWidth = geo.size.width }
+                }
+            )
+            .overlay(alignment: .leading) {
+                if showLeftFade {
+                    fadeMask(direction: .leading)
+                        .transition(.opacity)
+                }
+            }
+            .overlay(alignment: .trailing) {
+                fadeMask(direction: .trailing) // kanan selalu ada sampai mentok
+                    .opacity(showRightFade ? 1 : 0)
+            }
+            .animation(.easeInOut(duration: 0.2), value: showLeftFade)
+            .animation(.easeInOut(duration: 0.2), value: showRightFade)
+        }
+    }
+
+    private func fadeMask(direction: UnitPoint) -> some View {
+        LinearGradient(
+            colors: [
+                Color(UIColor.secondarySystemGroupedBackground),
+                .clear
+            ],
+            startPoint: direction,
+            endPoint: direction == .leading ? .trailing : .leading
+        )
+        .frame(width: 56) // lebih lebar supaya lebih kelihatan
+        .allowsHitTesting(false)
+    }
+}
+
+// MARK: - Preview
 
 #Preview {
     NavigationStack {
