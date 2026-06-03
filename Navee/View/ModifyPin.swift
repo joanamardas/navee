@@ -13,6 +13,7 @@ struct ModifyPin: View {
     var onDelete: () -> Void
 
     @State private var draft:            Location
+    @State private var photo: Data?
     @State private var showDeleteAlert = false
 
     private let nameLimit = 20
@@ -34,6 +35,7 @@ struct ModifyPin: View {
         List {
             nameSection
             IconPickerSection(selectedIcon: $draft.emoji)
+            photoSection
             infoSection
             deleteSection
         }
@@ -80,6 +82,16 @@ struct ModifyPin: View {
                     .monospacedDigit()
                     .animation(.none, value: draft.name.count)
             }
+        }
+    }
+
+    // MARK: - Photo
+
+    // var tempat buat nyimpen photoData
+    private var photoSection: some View {
+        Section {
+            PointPhotoPickerView(photoData: $draft.photoData)
+                .listRowInsets(EdgeInsets())
         }
     }
 

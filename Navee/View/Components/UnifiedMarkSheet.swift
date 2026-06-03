@@ -29,6 +29,11 @@ struct SmallDetent: CustomPresentationDetent {
     static func height(in context: Context) -> CGFloat? { 240 }
 }
 
+// Taller detent used when the selected point has a saved photo
+struct PhotoDetailDetent: CustomPresentationDetent {
+    static func height(in context: Context) -> CGFloat? { 370 }
+}
+
 // MARK: - UnifiedMarkSheet
 
 struct UnifiedMarkSheet: View {
@@ -59,8 +64,10 @@ struct UnifiedMarkSheet: View {
         self.onNavigate    = onNavigate
         self.onSelectOnMap = onSelectOnMap
 
-        if case .detail = content.wrappedValue {
-            self._selectedDetent = State(initialValue: .custom(SmallDetent.self))
+        if case .detail(let loc) = content.wrappedValue {
+            let hasPhoto = locations.wrappedValue.first(where: { $0.id == loc.id })?.photoData != nil
+            let initial: PresentationDetent = hasPhoto ? .custom(PhotoDetailDetent.self) : .custom(SmallDetent.self)
+            self._selectedDetent = State(initialValue: initial)
         } else {
             self._selectedDetent = State(initialValue: .large)
         }
@@ -130,17 +137,23 @@ struct UnifiedMarkSheet: View {
     private var availableDetents: Set<PresentationDetent> {
         // Saat dismiss, hanya [.large] supaya sheet tidak snap naik dulu
         if isDismissing { return [.large] }
-        // Saat expanding ke edit, lock ke [small, large] supaya iOS
-        // tahu dari mana sheet naik — jangan hapus small dulu sebelum animasi selesai
-        if isExpandingForEdit { return [.custom(SmallDetent.self), .large] }
+        // Saat expanding ke edit, include both small detents so iOS knows
+        // where the sheet starts — don't remove them before the animation finishes
+        if isExpandingForEdit { return [.custom(SmallDetent.self), .custom(PhotoDetailDetent.self), .large] }
         switch content {
-        case .detail: return [.custom(SmallDetent.self), .large]
-        default:      return [.large]
+        case .detail(let location): return [detailDetent(for: location), .large]
+        default:                    return [.large]
         }
     }
 
+    // Returns the appropriate small detent based on whether the location has a photo
+    private func detailDetent(for location: Location) -> PresentationDetent {
+        let live = locations.first(where: { $0.id == location.id }) ?? location
+        return live.photoData != nil ? .custom(PhotoDetailDetent.self) : .custom(SmallDetent.self)
+    }
+
     private func targetDetent(for c: MarkSheetContent?) -> PresentationDetent {
-        if case .detail = c { return .custom(SmallDetent.self) }
+        if case .detail(let location) = c { return detailDetent(for: location) }
         return .large
     }
 

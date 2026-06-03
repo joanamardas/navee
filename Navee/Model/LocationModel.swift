@@ -15,6 +15,7 @@ struct Location: Identifiable, Hashable {
     var altitude: Double  // Ketinggian dalam meter
     var emoji: String     // Icon SF Symbol yang dipilih user
     var notes: String     // Catatan opsional dari user
+    var photoData: Data?  // Optional photo taken or picked by user
 
     // MARK: - Init
 
@@ -25,7 +26,8 @@ struct Location: Identifiable, Hashable {
         timestamp: Date = Date(),
         altitude: Double,
         emoji: String,
-        notes: String = ""
+        notes: String = "",
+        photoData: Data? = nil
     ) {
         self.id         = id
         self.name       = name
@@ -34,6 +36,7 @@ struct Location: Identifiable, Hashable {
         self.altitude   = altitude
         self.emoji      = emoji
         self.notes      = notes
+        self.photoData  = photoData
     }
 
     // MARK: - Hashable & Equatable

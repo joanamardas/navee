@@ -35,6 +35,16 @@ struct BottomPinDetailView: View {
                 Spacer()
             }
 
+            // Photo preview — only shown when the user has added a photo
+            if let data = location.photoData, let image = UIImage(data: data) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 130)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+
             Button(action: onNavigate) {
                 HStack(spacing: 8) {
                     Image(systemName: "location.fill")
